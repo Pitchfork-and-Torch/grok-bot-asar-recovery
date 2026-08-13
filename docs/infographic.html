@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grok Bot Launch Fix - tree-sitter / app.asar</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121820;
+      --panel2: #18212c;
+      --ink: #e8eef6;
+      --muted: #93a4b8;
+      --line: #2a3747;
+      --red: #ff5c6c;
+      --red-dim: rgba(255, 92, 108, 0.14);
+      --green: #3dd68c;
+      --green-dim: rgba(61, 214, 140, 0.14);
+      --amber: #f0b429;
+      --amber-dim: rgba(240, 180, 41, 0.14);
+      --blue: #6cb6ff;
+      --blue-dim: rgba(108, 182, 255, 0.12);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: var(--ink);
+      font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+    }
+    .canvas {
+      width: 1200px;
+      height: 1500px;
+      margin: 0 auto;
+      background:
+        radial-gradient(900px 500px at 15% -5%, rgba(108, 182, 255, 0.18), transparent 55%),
+        radial-gradient(700px 420px at 90% 10%, rgba(61, 214, 140, 0.10), transparent 50%),
+        radial-gradient(600px 500px at 70% 100%, rgba(255, 92, 108, 0.08), transparent 55%),
+        linear-gradient(180deg, #0b0f14 0%, #0e141c 100%);
+      padding: 48px 52px 44px;
+      position: relative;
+      overflow: hidden;
+    }
+    .canvas::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.55), transparent 75%);
+      pointer-events: none;
+    }
+    .content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; gap: 22px; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .eyebrow .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(61,214,140,0.18);
+    }
+    h1 {
+      margin: 4px 0 0;
+      font-size: 46px;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+    }
+    h1 span { color: var(--blue); }
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.4;
+      max-width: 980px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .card {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+    }
+    .card.full { grid-column: 1 / -1; }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .card.bug h2 { color: var(--red); }
+    .card.fix h2 { color: var(--green); }
+    .card.why h2 { color: var(--amber); }
+    .card.steps h2 { color: var(--blue); }
+
+    .error-box {
+      background: var(--red-dim);
+      border: 1px solid rgba(255,92,108,0.35);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 15px;
+      line-height: 1.45;
+      color: #ffd0d5;
+    }
+    .error-box strong { color: #fff; }
+
+    ul.clean {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    ul.clean li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: var(--ink);
+      font-size: 17px;
+      line-height: 1.35;
+    }
+    .num {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 13px; font-weight: 800;
+    }
+    .bug .num { background: var(--red-dim); color: var(--red); }
+    .fix .num { background: var(--green-dim); color: var(--green); }
+    .why .num { background: var(--amber-dim); color: var(--amber); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr 40px 1fr 40px 1fr;
+      align-items: stretch;
+      gap: 0;
+      margin-top: 4px;
+    }
+    .flow-step {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 14px;
+      text-align: center;
+    }
+    .flow-step .label {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .flow-step .title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .flow-step .desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .flow-step.bad { border-color: rgba(255,92,108,0.35); background: var(--red-dim); }
+    .flow-step.good { border-color: rgba(61,214,140,0.35); background: var(--green-dim); }
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .code {
+      margin-top: 12px;
+      background: #0a0e13;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 13.5px;
+      color: #cfe0f2;
+      line-height: 1.45;
+      overflow: hidden;
+    }
+    .code .ok { color: var(--green); }
+    .code .bad { color: var(--red); }
+    .code .cmt { color: #6f8196; }
+
+    .footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(42,55,71,0.8);
+    }
+    .footer .left {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .footer .badge {
+      background: var(--blue-dim);
+      border: 1px solid rgba(108,182,255,0.3);
+      color: var(--blue);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="content">
+      <div>
+        <div class="eyebrow"><span class="dot"></span> Incident brief · desktop agent</div>
+        <h1>Grok Bot would not start:<br><span>missing tree-sitter module</span></h1>
+        <p class="subtitle">
+          A corrupted <code>app.asar</code> broke native dependency resolution.
+          Restoring the pre-patch archive fixed launch in under a minute.
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="card bug">
+          <h2>The bug</h2>
+          <div class="error-box">
+            <strong>Uncaught Exception</strong><br>
+            Error: Cannot find module <strong>'tree-sitter'</strong><br>
+            Require stack: …/app.asar/dist/electron-main/main.js
+          </div>
+          <ul class="clean" style="margin-top:14px">
+            <li><span class="num">1</span><span>Main process requires <code>tree-sitter</code> for shell parsing.</span></li>
+            <li><span class="num">2</span><span>It sets <code>NODE_PATH</code> to <code>app.asar/dist/deps</code>.</span></li>
+            <li><span class="num">3</span><span>A same-day <code>app.asar</code> rewrite left only empty dep stubs.</span></li>
+            <li><span class="num">4</span><span>Real packages still lived in <code>app.asar.unpacked</code>, unreachable.</span></li>
+          </ul>
+        </div>
+
+        <div class="card fix">
+          <h2>The fix</h2>
+          <ul class="clean">
+            <li><span class="num">1</span><span>Quit every <strong>Grok Bot</strong> process.</span></li>
+            <li><span class="num">2</span><span>Keep the broken asar as forensic backup.</span></li>
+            <li><span class="num">3</span><span>Restore <code>app.asar</code> from the pre-patch backup.</span></li>
+            <li><span class="num">4</span><span>Relaunch - window stays open, error gone.</span></li>
+          </ul>
+          <div class="code">
+            <span class="cmt"># resources folder under Local\Programs\Grok Bot</span><br>
+            Copy-Item app.asar app.asar.broken-… -Force<br>
+            Copy-Item app.asar.bak-subject-fix-… app.asar -Force<br>
+            <span class="ok"># launch Grok Bot.exe  →  OK</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card why full">
+        <h2>Why it failed</h2>
+        <div class="flow">
+          <div class="flow-step bad">
+            <div class="label">Broken</div>
+            <div class="title">app.asar</div>
+            <div class="desc">Empty dist/deps stubs only (0 files per package)</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-step">
+            <div class="label">Lookup</div>
+            <div class="title">NODE_PATH</div>
+            <div class="desc">Resolves tree-sitter inside asar path</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-step good">
+            <div class="label">Alive but unused</div>
+            <div class="title">unpacked</div>
+            <div class="desc">Real tree-sitter + .node bindings still present</div>
+          </div>
+        </div>
+        <div class="code" style="margin-top:16px">
+          <span class="cmt">// bootstrap at top of electron main</span><br>
+          const depsDir = path.join(__dirname, '..', 'deps');  <span class="cmt">// app.asar/dist/deps</span><br>
+          process.env.NODE_PATH = depsDir;<br>
+          Module._initPaths();<br>
+          require('tree-sitter');  <span class="bad">// fails when asar stubs are empty</span>
+        </div>
+      </div>
+
+      <div class="card steps full">
+        <h2>Takeaways for Bot / desktop Electron apps</h2>
+        <ul class="clean">
+          <li><span class="num" style="background:var(--blue-dim);color:var(--blue)">A</span><span><strong>Never repack asar</strong> without verifying <code>dist/deps/*/package.json</code> and native <code>.node</code> files are either in the archive index or resolved via <code>app.asar.unpacked</code>.</span></li>
+          <li><span class="num" style="background:var(--blue-dim);color:var(--blue)">B</span><span><strong>Keep a known-good asar backup</strong> before any subject/string patch so restore is one copy command.</span></li>
+          <li><span class="num" style="background:var(--blue-dim);color:var(--blue)">C</span><span><strong>If you must patch:</strong> rewrite <code>NODE_PATH</code> to replace <code>app.asar</code> with <code>app.asar.unpacked</code>, or ship real dep files inside the asar.</span></li>
+        </ul>
+      </div>
+
+      <div class="footer">
+        <div class="left">
+          Status: fixed by restoring pre-patch asar · 2026-08-11<br>
+          Public runbook: github.com/Pitchfork-and-Torch/grok-bot-asar-recovery
+        </div>
+        <div class="badge">Pitchfork-and-Torch · incident note</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
