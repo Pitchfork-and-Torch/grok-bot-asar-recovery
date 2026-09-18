@@ -60,9 +60,14 @@ Write-Step "unpacked tree-sitter .node present: $(Test-Path -LiteralPath $treeSi
 $backups = @(Get-ChildItem -LiteralPath $resources -Filter 'app.asar.bak*' -File -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending)
 if ($backups.Count -eq 0) {
-    # also accept common forensic names
+    # also accept common forensic names, but never treat our own
+    # app.asar.broken-before-restore-* copies as restore sources
     $backups = @(Get-ChildItem -LiteralPath $resources -Filter 'app.asar.*' -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -ne 'app.asar' -and $_.Length -gt 1MB } |
+        Where-Object {
+            $_.Name -ne 'app.asar' -and
+            $_.Name -notlike 'app.asar.broken-before-restore-*' -and
+            $_.Length -gt 1MB
+        } |
         Sort-Object Length -Descending)
 }
 
